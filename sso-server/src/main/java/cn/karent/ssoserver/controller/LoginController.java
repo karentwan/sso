@@ -3,18 +3,18 @@ package cn.karent.ssoserver.controller;
 import cn.hutool.core.util.StrUtil;
 import cn.karent.ssoserver.cache.LoginCache;
 import cn.karent.ssoserver.util.TokenUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -26,6 +26,8 @@ import java.util.Set;
 @Controller
 public class LoginController {
 
+    private final static Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
+
     @Autowired
     private RestTemplate restTemplate;
 
@@ -36,6 +38,7 @@ public class LoginController {
     public String loginUI(Model model,
                           String clientUrl, String logoutUrl,
                           @CookieValue(value = "token", required = false) String token) {
+        LOGGER.info("loginUI, clientUrl:{}， logoutUrl:{}, token:{}", clientUrl, logoutUrl, token);
         model.addAttribute("clientUrl", clientUrl);
         model.addAttribute("logoutUrl", logoutUrl);
         if (token != null) {  // 已登录, 将系统注册进系统里面
@@ -77,7 +80,7 @@ public class LoginController {
             }
             return;
         }
-        System.out.println("用户名:" + userName + "\t密码:" + password);
+        LOGGER.info("用户名:{}, 密码:{}", userName, password);
         if ("admin".equals(userName) && "admin".equals(password)) {
             try {
                 // 记录登录结果
@@ -113,15 +116,21 @@ public class LoginController {
 
     @GetMapping("/logout")
     public String logout(String token, HttpServletRequest req, HttpServletResponse resp) {
-        System.out.println("开始退出登录....., token:" + token);
+        LOGGER.info("退出登录, token:{}", token);
         Set<String> urls = loginCache.get(token);
         Iterator<String> iter = urls.iterator();
         while (iter.hasNext()) {
             String url = iter.next();
-            System.out.println("局部会话注销地址为:" + url);
+            LOGGER.info("局部会话的注销地址为:{}", url);
             if (!"#".equals(url)) {
-                String ret = restTemplate.getForObject(url + "?token=" + token, String.class);
-                System.out.println("局部会话销毁结果....:" + ret);
+                String ret = null;
+                try {
+                    ret = restTemplate.getForObject(url + "?token=" + token, String.class);
+                } catch (RestClientException e) {
+                    e.printStackTrace();
+                    LOGGER.error("局部会话注销异常, 错误信息为: {}", e.getLocalizedMessage());
+                }
+                LOGGER.info("局部会话销毁结果:{}", ret);
             }
             iter.remove();
         }

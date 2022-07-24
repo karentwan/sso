@@ -2,6 +2,8 @@ package cn.karent.client2.interceptor;
 
 import cn.hutool.core.util.StrUtil;
 import cn.karent.client2.util.CookieUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -20,6 +22,8 @@ import javax.servlet.http.HttpSession;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
+    private final static Logger LOGGER = LoggerFactory.getLogger(AuthInterceptor.class);
+
     @Autowired
     private RestTemplate restTemplate;
 
@@ -30,7 +34,10 @@ public class AuthInterceptor implements HandlerInterceptor {
         String token = (String) session.getAttribute("token");
         String tokenUrl = request.getParameter("token");
         String tokenHeader = request.getHeader("token");
-        String tokenCookie = CookieUtils.get(request, "token1");
+        String tokenCookie = CookieUtils.get(request, "token2");
+        LOGGER.info("当前访问地址:{}, sessionToken:{}, tokenUrl:{}, tokenHeader:{}, tokenCookie:{}",
+                request.getRequestURL(),
+                token, tokenUrl, tokenHeader, tokenCookie);
         if (token == null ) {
             String ret = "NO";
             token = null;
@@ -49,13 +56,13 @@ public class AuthInterceptor implements HandlerInterceptor {
                 // 创建局部会话
                 session.setAttribute("token", token);
                 // 将token设置到cookie当中, 这样下次来的时候就可以使用cookie中的token进行自动登录
-                Cookie c = new Cookie("token1", token);
+                Cookie c = new Cookie("token2", token);
                 c.setMaxAge(60);  // 1分钟
                 response.addCookie(c);
             } else {
                 // 获取当前的登录地址
                 String url = request.getRequestURL().toString();
-                System.out.println("当前登录地址: " + url);
+                System.out.println("当前请求地址: " + url);
                 // url编码
                 response.sendRedirect("http://localhost:8082/loginUI?clientUrl=" + url + "&logoutUrl=http://localhost:8080/logout");
                 return false;

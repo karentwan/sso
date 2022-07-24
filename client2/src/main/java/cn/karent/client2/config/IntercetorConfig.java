@@ -20,7 +20,7 @@ public class IntercetorConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/")
+                .addPathPatterns("/*")
                 .excludePathPatterns("/index.html");
     }
 }

@@ -2,6 +2,8 @@ package cn.karent.client1.interceptor;
 
 import cn.hutool.core.util.StrUtil;
 import cn.karent.client1.util.CookieUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -20,6 +22,8 @@ import javax.servlet.http.HttpSession;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
+    private final static Logger LOGGER = LoggerFactory.getLogger(AuthInterceptor.class);
+
     @Autowired
     private RestTemplate restTemplate;
 
@@ -31,6 +35,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         String tokenUrl = request.getParameter("token");
         String tokenHeader = request.getHeader("token");
         String tokenCookie = CookieUtils.get(request, "token1");
+        LOGGER.info("当前访问地址:{}, sessionToken:{}, tokenUrl:{}, tokenHeader:{}, tokenCookie:{}",
+                request.getRequestURL(),
+                token, tokenUrl, tokenHeader, tokenCookie);
         if (token == null ) {
             String ret = "NO";
             token = null;
@@ -55,7 +62,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             } else {
                 // 获取当前的登录地址
                 String url = request.getRequestURL().toString();
-                System.out.println("当前登录地址: " + url);
+//                System.out.println("当前请求地址: " + url);
+                LOGGER.info("当前请求地址:{}", url);
                 // url编码
                 response.sendRedirect("http://localhost:8082/loginUI?clientUrl=" + url + "&logoutUrl=http://localhost:8080/logout");
                 return false;

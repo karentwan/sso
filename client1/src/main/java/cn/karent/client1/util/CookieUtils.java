@@ -14,12 +14,7 @@ public class CookieUtils {
 
     public static String get(HttpServletRequest req, String key) {
         Cookie[] cookies = req.getCookies();
-//        for (Cookie cookie : cookies) {
-//            if (cookie.getName().equals(key)) {
-//                return cookie.getValue();
-//            }
-//        }
-//        return null;
+        if (cookies == null) return null;
         Object[] objs = Arrays.stream(cookies)
                 .filter(k -> k.getName().equals(key))
                 .map(Cookie::getValue)
