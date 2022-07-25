@@ -61,6 +61,8 @@ public class LoginController {
                 (!StrUtil.isEmpty(headerToken) && loginCache.hasKey(headerToken))) {
             LOGGER.info("系统已登录, 不用重复登录");
             try {
+                // 此处应返回一个提示页面, 并且设定一个倒计时, 然后重定向到clientUrl
+//                req.getRequestDispatcher("/prompt.html").forward(req, resp);
                 resp.setCharacterEncoding("gbk");
                 resp.getWriter().write("已经已登录不用重复登录!!!");
             } catch (IOException e) {
