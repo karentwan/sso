@@ -50,7 +50,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             if (token != null) {
                 // 当用户未登录时, 去单点登录中心验证一下用户是否登录, 如果没有登录则跳转到登录页面
-                ret = restTemplate.getForObject("http://localhost:8082/verify?token=" + token, String.class);
+                ret = restTemplate.getForObject("http://localhost:8082/verify?token=" + token+ "&logoutUrl=http://localhost:8080/logout", String.class);
             }
             if ("YES".equals(ret)) {
                 // 创建局部会话
@@ -63,7 +63,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 // 获取当前的登录地址
                 String url = request.getRequestURL().toString();
                 // url编码
-                response.sendRedirect("http://localhost:8082/loginUI?clientUrl=" + url + "&logoutUrl=http://localhost:8080/logout");
+                response.sendRedirect("http://localhost:8082/loginUI?clientUrl=" + url);
                 return false;
             }
         }

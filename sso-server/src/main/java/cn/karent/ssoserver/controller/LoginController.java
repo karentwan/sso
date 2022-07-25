@@ -15,6 +15,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -36,13 +37,11 @@ public class LoginController {
 
     @GetMapping("/loginUI")
     public String loginUI(Model model,
-                          String clientUrl, String logoutUrl,
+                          String clientUrl,
                           @CookieValue(value = "token", required = false) String token) {
-        LOGGER.info("loginUI, clientUrl:{}， logoutUrl:{}, token:{}", clientUrl, logoutUrl, token);
+        LOGGER.info("loginUI, clientUrl:{}, token:{}", clientUrl, token);
         model.addAttribute("clientUrl", clientUrl);
-        model.addAttribute("logoutUrl", logoutUrl);
-        if (token != null) {  // 已登录, 将系统注册进系统里面
-            loginCache.add(token, logoutUrl);
+        if (token != null && loginCache.exists(token)) {  // 已登录
             // 重定向
             return "redirect:" + clientUrl + "?token=" + token;
         }
@@ -54,22 +53,20 @@ public class LoginController {
             @RequestParam(value = "userName", required = false) String userName,
             @RequestParam(value = "password", required = false) String password,
             @RequestParam(value = "clientUrl", required = false) String clientUrl,
-            @RequestParam(value = "logoutUrl", required = false) String logoutUrl,
             @CookieValue(value = "token", required = false) String cookieToken,
             @RequestHeader(value = "token", required = false) String headerToken,
             HttpServletRequest req, HttpServletResponse resp) {
         // 当存在token的时候说明 已经有系统登录过
-        if (!StrUtil.isEmpty(cookieToken)) {
-            if (loginCache.hasKey(cookieToken)) {
-                loginCache.add(cookieToken, logoutUrl);
-                return;
+        if ((!StrUtil.isEmpty(cookieToken) && loginCache.hasKey(cookieToken)) ||
+                (!StrUtil.isEmpty(headerToken) && loginCache.hasKey(headerToken))) {
+            LOGGER.info("系统已登录, 不用重复登录");
+            try {
+                resp.setCharacterEncoding("gbk");
+                resp.getWriter().write("已经已登录不用重复登录!!!");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        }
-        if (!StrUtil.isEmpty(headerToken)) {
-            if (loginCache.hasKey(headerToken)) {
-                loginCache.add(headerToken, logoutUrl);
-                return;
-            }
+            return;
         }
         // 校验参数是否完整
         if (StrUtil.isEmpty(userName) && StrUtil.isEmpty(password)) {
@@ -85,12 +82,7 @@ public class LoginController {
             try {
                 // 记录登录结果
                 String token = TokenUtils.getToken();
-                // 这里应该记录client的logout地址, 当client注销的时候就能取出来注销了
-                if (!StrUtil.isEmpty(logoutUrl)) {
-                    loginCache.add(token, logoutUrl);
-                } else {
-                    loginCache.add(token, "#");
-                }
+                loginCache.init(token);
                 // 写cookie
                 Cookie cookie = new Cookie("token", token);
                 cookie.setMaxAge(60);
@@ -115,25 +107,11 @@ public class LoginController {
     }
 
     @GetMapping("/logout")
-    public String logout(String token, HttpServletRequest req, HttpServletResponse resp) {
+    public String logout(String token,
+                         HttpServletRequest req, HttpServletResponse resp) {
         LOGGER.info("退出登录, token:{}", token);
-        Set<String> urls = loginCache.get(token);
-        Iterator<String> iter = urls.iterator();
-        while (iter.hasNext()) {
-            String url = iter.next();
-            LOGGER.info("局部会话的注销地址为:{}", url);
-            if (!"#".equals(url)) {
-                String ret = null;
-                try {
-                    ret = restTemplate.getForObject(url + "?token=" + token, String.class);
-                } catch (RestClientException e) {
-                    e.printStackTrace();
-                    LOGGER.error("局部会话注销异常, 错误信息为: {}", e.getLocalizedMessage());
-                }
-                LOGGER.info("局部会话销毁结果:{}", ret);
-            }
-            iter.remove();
-        }
+        // TODO 此处可以引入消息队列解耦
+        loginCache.remove(token);
         // 删除cookie
         Cookie[] cookies = req.getCookies();
         for (Cookie cookie : cookies) {
@@ -149,8 +127,11 @@ public class LoginController {
 
     @GetMapping("/verify")
     @ResponseBody
-    public String verify(String token) {
-        if (loginCache.exists(token)) {
+    public String verify(String token, String logoutUrl) {
+        LOGGER.info("登录验证, token:{}, logoutUrl:{}", token, logoutUrl);
+        if (loginCache.hasKey(token)) {
+            LOGGER.info("注册子系统注销地址:{}", logoutUrl);
+            loginCache.add(token, logoutUrl);
             return "YES";
         }
         return "NO";
