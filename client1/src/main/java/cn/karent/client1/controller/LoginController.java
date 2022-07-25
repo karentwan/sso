@@ -27,9 +27,9 @@ public class LoginController {
                        HttpSession session, HttpServletResponse resp) {
 //        System.out.println("客户端1退出登录, token为:" + token + "\tsessionToken:" + sessionToken);
         LOGGER.info("客户端1退出登录, tokenUrl:{}, tokenSession:{}, tokenCookie:{}", token, sessionToken, cookieToken);
+        // 清除session
+        session.setAttribute("token", null);
         if (!StrUtil.isEmpty(token)) {  // 来自SSO中心
-            // 清除session
-            session.setAttribute("token", null);
             try {
                 resp.getWriter().write("YES");
             } catch (IOException e) {

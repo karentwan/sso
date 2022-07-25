@@ -28,9 +28,9 @@ public class LoginController {
                        @CookieValue(value = "token2", required = false) String cookieToken,
                        HttpSession session, HttpServletResponse resp) {
         LOGGER.info("客户端2退出登录, tokenUrl:{}， tokenSession:{}, tokenCookie:{}", token, sessionToken, cookieToken);
+        // 清除session
+        session.setAttribute("token", null);
         if (!StrUtil.isEmpty(token)) {  // 来自SSO中心
-            // 清除session
-            session.setAttribute("token", null);
             try {
                 resp.getWriter().write("YES");
             } catch (IOException e) {

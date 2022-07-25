@@ -62,9 +62,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             } else {
                 // 获取当前的登录地址
                 String url = request.getRequestURL().toString();
-                System.out.println("当前请求地址: " + url);
                 // url编码
-                response.sendRedirect("http://localhost:8082/loginUI?clientUrl=" + url + "&logoutUrl=http://localhost:8080/logout");
+                response.sendRedirect("http://localhost:8082/loginUI?clientUrl=" + url + "&logoutUrl=http://localhost:8081/logout");
                 return false;
             }
         }
